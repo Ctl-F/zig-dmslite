@@ -4,41 +4,53 @@ pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const exe_mod = b.createModule(.{
-        .root_source_file = b.path("src/main.zig"),
+    const dmslite = b.createModule(.{
+        .root_source_file = b.path("src/dmslite.zig"),
         .target = target,
         .optimize = optimize,
     });
 
-    const exe = b.addExecutable(.{
-        .name = "dmslite",
-        .root_module = exe_mod,
-    });
+    if(b.pkg_hash.len == 0){
+        const exe_mod = b.createModule(.{
+            .root_source_file = b.path("src/main.zig"),
+            .optimize = optimize,
+            .target = target,
+        });
 
-    exe.linkLibC();
+        const exe = b.addExecutable(.{
+            .name = "dmslite-test",
+            .root_module = exe_mod,
+        });
 
-    b.installArtifact(exe);
+        exe_mod.addImport(dmslite, "dmslite");
 
-    const run_cmd = b.addRunArtifact(exe);
+        exe.linkLibC();
 
-    run_cmd.step.dependOn(b.getInstallStep());
+        b.installArtifact(exe);
 
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+        const run_cmd = b.addRunArtifact(exe);
+        run_cmd.step.dependOn(b.getInstallStep());
+
+        if(b.args) |args|{
+            run_cmd.addArgs(args);
+        }
+
+        const run_step = b.step("run", "Run the test app");
+        run_step.dependOn(&run_cmd.step);
+
+        const exe_unit_tests = b.addTest(.{
+            .root_module = exe_mod,
+        });
+
+        const dms_unit_tests = b.addTest(.{
+            .root_module = mod,
+        });
+
+        const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
+        const run_dms_unit_tests = b.addRunArtifact(dms_unit_tests);
+
+        const test_step = b.step("test", "Run unit tests");
+        test_step.dependOn(&run_exe_unit_tests.step);
+        test_step.dependOn(&run_dms_unit_tests.step);
     }
-
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-
-    const exe_unit_tests = b.addTest(.{
-        .root_module = exe_mod,
-    });
-
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
-
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_exe_unit_tests.step);
 }
