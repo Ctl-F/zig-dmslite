@@ -78,16 +78,16 @@ pub const Capabilities = struct {
 pub fn query_card_capabilities(card: PhysicalCard) Error!Capabilities {
     var capabilities: Capabilities = undefined;
 
-    capabilities.can_use_dumb_buffer = intern.query_cap(card, intern.Capability.DUMB_BUFFER) != 0 catch return Error.CAP_NOT_FOUND;
-    capabilities.prime_dma_buf_sharing = intern.query_cap(card, intern.Capability.PRIME) != 0 catch return Error.CAP_NOT_FOUND;
-    capabilities.timestamp_monotonic = intern.query_cap(card, intern.Capability.TIMESTAMP_MONOTONIC) != 0 catch return Error.CAP_NOT_FOUND;
-    capabilities.async_page_flip = intern.query_cap(card, intern.Capability.ASYNC_PAGE_FLIP) != 0 catch return Error.CAP_NOT_FOUND;
+    capabilities.can_use_dumb_buffer = (intern.query_cap(card, intern.Capability.DUMB_BUFFER) catch return Error.CAP_NOT_FOUND) != 0;
+    capabilities.prime_dma_buf_sharing = (intern.query_cap(card, intern.Capability.PRIME) catch return Error.CAP_NOT_FOUND) != 0;
+    capabilities.timestamp_monotonic = (intern.query_cap(card, intern.Capability.TIMESTAMP_MONOTONIC) catch return Error.CAP_NOT_FOUND) != 0;
+    capabilities.async_page_flip = (intern.query_cap(card, intern.Capability.ASYNC_PAGE_FLIP) catch return Error.CAP_NOT_FOUND) != 0;
     capabilities.cursor.width = intern.query_cap(card, intern.Capability.CURSOR_WIDTH) catch return Error.CAP_NOT_FOUND;
     capabilities.cursor.height = intern.query_cap(card, intern.Capability.CURSOR_HEIGHT) catch return Error.CAP_NOT_FOUND;
-    capabilities.allow_format_modifiers = intern.query_cap(card, intern.Capability.ADDFB2_MOD) catch return Error.CAP_NOT_FOUND;
+    capabilities.allow_format_modifiers = (intern.query_cap(card, intern.Capability.ADDFB2_MOD) catch return Error.CAP_NOT_FOUND) != 0;
 
     capabilities.dumb_buffer_preferred_depth = intern.query_cap(card, intern.Capability.DUMB_PREFERRED_DEPTH) catch return Error.CAP_NOT_FOUND;
-    capabilities.dum_buffer_prefer_shadow = intern.query_cap(card, intern.Capability.DUMB_PREFER_SHADOW) catch return Error.CAP_NOT_FOUND;
+    capabilities.dumb_buffer_prefer_shadow = (intern.query_cap(card, intern.Capability.DUMB_PREFER_SHADOW) catch return Error.CAP_NOT_FOUND) != 0;
 
     return capabilities;
 }
