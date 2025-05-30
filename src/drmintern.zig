@@ -9,16 +9,16 @@ const c = @cImport({
 const IOC = struct {
     const ioc = @This();
 
-    const NONE = 0;
-    const WRITE = 1;
-    const READ = 2;
+    const NONE = c.NONE;
+    const WRITE = c.WRITE;
+    const READ = c.READ;
 
-    const NRBITS = 8;
-    const TYPEBITS = 8;
-    const SIZEBITS = 14;
-    const DIRBITS = 2;
+    const NRBITS = c.NRBITS;
+    const TYPEBITS = c.TYPEBITS;
+    const SIZEBITS = c.SIZEBITS;
+    const DIRBITS = c.DIRBITS;
 
-    const NRSHIFT = 0;
+    const NRSHIFT = c.NRSHIFT;
     const TYPESHIFT = ioc.NRSHIFT + ioc.NRBITS;
     const SIZESHIFT = ioc.TYPESHIFT + ioc.TYPEBITS;
     const DIRSHIFT = ioc.SIZESHIFT + ioc.SIZEBITS;
@@ -35,9 +35,9 @@ const IOC = struct {
     }
 };
 
-const DRM_IOCTL_BASE: u32 = 'd';
-const DRM_COMMAND_BASE: u32 = 0x40;
-const DRM_IOCTL_GET_CAP_NR = 0x0c;
+const DRM_IOCTL_BASE: u32 = c.DRM_IOCTL_BASE;
+const DRM_COMMAND_BASE: u32 = c.DRM_COMMAND_BASE;
+const DRM_IOCTL_GET_CAP_NR = c.DRM_IOCTL_GET_CAP_NR;
 
 pub const Version = extern struct {
     major: c_int,
@@ -62,6 +62,16 @@ const DRM_IOCTL_GET_CAP = IOC.IOWR(DRM_IOCTL_BASE, DRM_IOCTL_GET_CAP_NR, @sizeOf
 
 pub const Capability = enum(u64){
     DUMB_BUFFER = 0x01,    
+    VBLANK_HIGH_CRTC = 0x02,
+    DUMB_PREFERRED_DEPTH = 0x03,
+    DUMB_PREFER_SHADOW = 0x04,
+    PRIME = 0x05,
+    TIMESTAMP_MONOTONIC = 0x06,
+    ASYNC_PAGE_FLIP = 0x07,
+    CURSOR_WIDTH = 0x08,
+    CURSOR_HEIGHT = 0x09,
+    ADDFB2_MOD = 0x10,
+
 
 };
 
@@ -72,8 +82,8 @@ pub fn query_cap(card: std.posix.fd_t, capability: Capability) !u64 {
         .value = 0,
     };
     const ret = std.posix.system.ioctl(card, DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
-    if(ret != 0){
-        return error.DRM_ERROR_CODE;
+    if(ret < 0){
+        return std.posix.unexpectedErrno();
     }
     return cap.value;
 }

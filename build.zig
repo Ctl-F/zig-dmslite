@@ -22,8 +22,9 @@ pub fn build(b: *std.Build) void {
             .root_module = exe_mod,
         });
 
-        exe_mod.addImport(dmslite, "dmslite");
+        exe_mod.addImport("dmslite", dmslite);
 
+        exe.linkSystemLibrary("drm");
         exe.linkLibC();
 
         b.installArtifact(exe);
@@ -43,7 +44,7 @@ pub fn build(b: *std.Build) void {
         });
 
         const dms_unit_tests = b.addTest(.{
-            .root_module = mod,
+            .root_module = dmslite,
         });
 
         const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
