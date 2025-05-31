@@ -12,6 +12,10 @@ pub fn main() !void {
         std.debug.print("No DRM/KMS devices detected\n", .{});
         return;
     }
+    
+    for(cards.items) |card| {
+        std.debug.print("Found> {s}\n", .{card});
+    }
 
     const card = try dmslite.open_card(cards.items[0]);
     defer dmslite.release_card(card);

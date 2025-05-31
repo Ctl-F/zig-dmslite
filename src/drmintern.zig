@@ -81,7 +81,7 @@ pub fn query_cap(card: std.posix.fd_t, capability: Capability) !u64 {
         .capability = @intFromEnum(capability),
         .value = 0,
     };
-    const ret = std.posix.system.ioctl(card, c.DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
+    const ret = std.os.linux.ioctl(card, c.DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
     if(ret < 0){
         return std.posix.unexpectedErrno();
     }

@@ -22,13 +22,14 @@ pub fn enumerate_cards(allocator: std.mem.Allocator) Error!std.ArrayList([]u8) {
     var list = List.init(allocator);
     errdefer free_card_enumeration(list);
 
-
     var dir = std.fs.cwd().openDir("/dev/dri/", .{ .iterate = true } ) catch return Error.DIR_NOT_FOUND;
     defer dir.close();
 
     var it = dir.iterate();
     while(it.next() catch return Error.DIR_NOT_FOUND) |entry| {
-        if(entry.kind != .file){
+        std.debug.print("Polling /dev/dri/...found {}:{s}\n", .{ entry.kind, entry.name });
+
+        if(entry.kind != .character_device){
             continue;
         }
 
