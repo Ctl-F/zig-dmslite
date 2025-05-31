@@ -27,8 +27,6 @@ pub fn enumerate_cards(allocator: std.mem.Allocator) Error!std.ArrayList([]u8) {
 
     var it = dir.iterate();
     while(it.next() catch return Error.DIR_NOT_FOUND) |entry| {
-        std.debug.print("Polling /dev/dri/...found {}:{s}\n", .{ entry.kind, entry.name });
-
         if(entry.kind != .character_device){
             continue;
         }

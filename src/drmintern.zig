@@ -39,6 +39,11 @@ const DRM_IOCTL_BASE: u32 = c.DRM_IOCTL_BASE;
 const DRM_COMMAND_BASE: u32 = c.DRM_COMMAND_BASE;
 const DRM_IOCTL_GET_CAP_NR = 0x0C;
 
+const DRM_IOCTL_MODE_GET_RESOURCES_NR = 0xA0;
+const DRM_IOCTL_MODE_GET_RESOURCES = c.DRM_IOCTL_MODE_GETRESOURCES;
+
+const ioctl = std.os.linux.ioctl;
+
 pub const Version = extern struct {
     major: c_int,
     minor: c_int,
@@ -71,20 +76,67 @@ pub const Capability = enum(u64){
     CURSOR_WIDTH = 0x08,
     CURSOR_HEIGHT = 0x09,
     ADDFB2_MOD = 0x10,
-
-
 };
 
+const drm_CardResources = extern struct {
+    fb_id_ptr: u64,
+    crtc_id_ptr: u64,
+    connector_id_ptr: u64,
+    encoder_id_ptr: u64,
+    count_fbs: u32,
+    count_crtcs: u32,
+    count_connectors: u32,
+    count_encoders: u32,
+    min_width: u32,
+    max_width: u32,
+    min_height: u32,
+    max_height: u32,
+};
+
+pub const Resources = struct {
+    fb_ids: []u32,
+    crtc_ids: []u32,
+    connector_ids: []u32,
+    encoder_ids: []u32,
+    limits: struct {
+        min: struct { width: u32, height: u32 },
+        max: struct { width: u32, height: u32 },
+    },
+};
 
 pub fn query_cap(card: std.posix.fd_t, capability: Capability) !u64 {
     var cap = drm_get_cap {
         .capability = @intFromEnum(capability),
         .value = 0,
     };
-    const ret = std.os.linux.ioctl(card, c.DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
+    const ret = ioctl(card, c.DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
     if(ret < 0){
         return std.posix.unexpectedErrno();
     }
     return cap.value;
+}
+
+pub fn query_card_resources(card: std.posix.fd_t, allocator: std.mem.Allocator) !Resources {
+    var res = std.mem.zeroes(CardResources);
+    const ret0 = ioctl(card, c.DRM_IOCTL_MODE_GETRESOURCES, @intFromPtr(&res));
+
+    if(ret0 < 0){
+        return std.posix.unexpectedErrno();
+    }
+    var resources = std.mem.zeroes(Resources);
+    
+    resources.fb_ids = try allocator.alloc(u32, res.count_fbs);
+    errdefer allocator.free(resources.fb_ids);
+
+    resources.connector_ids = try allocator.alloc(u32, res.count_connectors);
+    errdefer allocator.free(resources.connector_ids);
+
+    resources.encoder_ids = try allocator.alloc(u32, res.count_encoders);
+    errdefer allocator.free(resources.encoder_ids);
+
+    resources.crtc_ids = try allocator.alloc(u32, res.count_crtcs);
+    errdefer allocator.free(resources.crtc_ids);
+
+    resources.limits.min.width = res.min_width;
 }
 
