@@ -9,16 +9,16 @@ const c = @cImport({
 const IOC = struct {
     const ioc = @This();
 
-    const NONE = c.NONE;
-    const WRITE = c.WRITE;
-    const READ = c.READ;
+    const NONE = 0;
+    const WRITE = 1;
+    const READ = 2;
 
-    const NRBITS = c.NRBITS;
-    const TYPEBITS = c.TYPEBITS;
-    const SIZEBITS = c.SIZEBITS;
-    const DIRBITS = c.DIRBITS;
+    const NRBITS = 8;
+    const TYPEBITS = 8;
+    const SIZEBITS = 14;
+    const DIRBITS = 2;
 
-    const NRSHIFT = c.NRSHIFT;
+    const NRSHIFT = 0;
     const TYPESHIFT = ioc.NRSHIFT + ioc.NRBITS;
     const SIZESHIFT = ioc.TYPESHIFT + ioc.TYPEBITS;
     const DIRSHIFT = ioc.SIZESHIFT + ioc.SIZEBITS;
@@ -37,7 +37,7 @@ const IOC = struct {
 
 const DRM_IOCTL_BASE: u32 = c.DRM_IOCTL_BASE;
 const DRM_COMMAND_BASE: u32 = c.DRM_COMMAND_BASE;
-const DRM_IOCTL_GET_CAP_NR = c.DRM_IOCTL_GET_CAP_NR;
+const DRM_IOCTL_GET_CAP_NR = 0x0C;
 
 pub const Version = extern struct {
     major: c_int,
@@ -81,7 +81,7 @@ pub fn query_cap(card: std.posix.fd_t, capability: Capability) !u64 {
         .capability = @intFromEnum(capability),
         .value = 0,
     };
-    const ret = std.posix.system.ioctl(card, DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
+    const ret = std.posix.system.ioctl(card, c.DRM_IOCTL_GET_CAP, @intFromPtr(&cap));
     if(ret < 0){
         return std.posix.unexpectedErrno();
     }

@@ -25,7 +25,9 @@ pub fn build(b: *std.Build) void {
         exe_mod.addImport("dmslite", dmslite);
 
         //exe.root_module.addSystemIncludePath( .{ .cwd_relative = "/usr/include/libdrm" }); //std.fs.cwd().openDir("/usr/include/libdrm", .{ }) });
-        exe.linkSystemLibrary2("drm", .{ .use_pkg_config = .force });
+        //dmslite.linkSystemLibrary2("drm", .{ .use_pkg_config = .force });
+        dmslite.addSystemIncludePath( .{ .cwd_relative = "/usr/include/libdrm" });
+        exe.linkSystemLibrary("drm");
         exe.linkLibC();
 
         b.installArtifact(exe);
