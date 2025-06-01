@@ -16,6 +16,9 @@ pub const Error = error {
     CAP_NOT_FOUND,
 };
 
+pub const Resources = intern.Resources;
+pub const query_card_resources = intern.query_card_resources;
+pub const free_card_resources = intern.free_card_resources;
 
 pub fn enumerate_cards(allocator: std.mem.Allocator) Error!std.ArrayList([]u8) {
     const List = std.ArrayList([]u8);

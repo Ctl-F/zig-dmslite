@@ -102,6 +102,7 @@ pub const Resources = struct {
         min: struct { width: u32, height: u32 },
         max: struct { width: u32, height: u32 },
     },
+    allocator: std.mem.Allocator,
 };
 
 pub fn query_cap(card: std.posix.fd_t, capability: Capability) !u64 {
@@ -117,13 +118,22 @@ pub fn query_cap(card: std.posix.fd_t, capability: Capability) !u64 {
 }
 
 pub fn query_card_resources(card: std.posix.fd_t, allocator: std.mem.Allocator) !Resources {
-    var res = std.mem.zeroes(CardResources);
+    var res = std.mem.zeroes(drm_CardResources);
     const ret0 = ioctl(card, c.DRM_IOCTL_MODE_GETRESOURCES, @intFromPtr(&res));
+
+    const empty: [0]u32 = undefined;
 
     if(ret0 < 0){
         return std.posix.unexpectedErrno();
     }
-    var resources = std.mem.zeroes(Resources);
+    var resources = Resources {
+        .allocator = allocator,
+        .fb_ids = &empty,
+        .connector_ids = &empty,
+        .encoder_ids = &empty,
+        .crtc_ids = &empty,
+        .limits = undefined,
+    };
     
     resources.fb_ids = try allocator.alloc(u32, res.count_fbs);
     errdefer allocator.free(resources.fb_ids);
@@ -138,5 +148,26 @@ pub fn query_card_resources(card: std.posix.fd_t, allocator: std.mem.Allocator) 
     errdefer allocator.free(resources.crtc_ids);
 
     resources.limits.min.width = res.min_width;
+    resources.limits.min.height = res.min_height;
+    resources.limits.max.width = res.max_width;
+    resources.limits.max.height = res.max_height;
+
+    res.fb_id_ptr = @intFromPtr(resources.fb_ids.ptr);
+    res.connector_id_ptr = @intFromPtr(resources.connector_ids.ptr);
+    res.encoder_id_ptr = @intFromPtr(resources.encoder_ids.ptr);
+    res.crtc_id_ptr = @intFromPtr(resources.crtc_ids.ptr);
+
+    const ret1 = ioctl(card, c.DRM_IOCTL_MODE_GETRESOURCES, @intFromPtr(&res));
+
+    if(ret1 < 0){
+        return std.posix.unexpectedErrno();
+    }
+    return resources;
 }
 
+pub fn free_card_resources(res: Resources) void {
+    res.allocator.free(res.fb_ids);
+    res.allocator.free(res.connector_ids);
+    res.allocator.free(res.encoder_ids);
+    res.allocator.free(res.crtc_ids);
+}
