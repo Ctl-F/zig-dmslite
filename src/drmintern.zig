@@ -172,11 +172,29 @@ pub fn free_card_resources(res: Resources) void {
     res.allocator.free(res.crtc_ids);
 }
 
+pub const FramebufferInfo = struct {
+    resolution: Resolution = .Small,
+};
 
 pub const Connection = struct {
-    connection_id: u32,
+    connector_id: u32,
+    connector_mode: u32,
     encoder_id: u32,
     crtc_id: u32,
+};
+
+pub const Resolution = enum {
+    Small,
+    Medium,
+    Large,
+
+    pub fn get_native_size(resolution: Resolution) @Vector(2, u32){
+        return switch(resolution) {
+            .Small => .{ 640, 480 },
+            .Medium => .{ 800, 600 },
+            .Large => .{ 1280, 720 },
+        };
+    }
 };
 
 fn select_open_connector(card: std.posix.fd_t, res: Resources) !u32 {
@@ -189,15 +207,43 @@ fn select_open_connector(card: std.posix.fd_t, res: Resources) !u32 {
             continue;
         }
 
-        return conn_id;
+        return conn;
     }
     else {
         return error.CONN_NOT_FOUND;
     }
 }
 
-pub fn select_connection_and_encoder(card: std.posix.fd_t, res: Resources) !Connection {
-   _ = card;
-   _ = res;
-   return error.NotImplemented;
+fn select_mode(connector: *c.drmModeConnector, info: FramebufferInfo) ?struct { ?*c.drmModeModeInfo, u32 } {
+    const resolution = info.resolution.get_native_size();
+    for(0..connector.count_modes) |idx| {
+        const mode = connector.modes[idx];
+        if(mode.hdisplay == resolution[0] and mode.vdisplay == resolution[1]){
+            return .{
+                mode,
+                @intCast(idx),
+            };
+        }
+    }
+    return null;
+}
+
+pub fn select_connection_and_encoder(card: std.posix.fd_t, res: Resources, info: FramebufferInfo) !Connection {
+    const connector_id = try select_open_connector(card, res);
+
+    const connector = c.drmModeGetConnector(card, connector_id);
+    if(connector[0] == null){
+        return error.NoActiveConnection;
+    }
+
+    if(select_mode(connector.?, info)) |mode| {
+        return Connection{
+            .connector_id = connector_id,
+            .connector_mode = mode[1],
+            .encoder_id = 0,
+            .crtc_id = 0,
+        };
+    }
+    
+    return error.ModeNotAvailable;
 }
