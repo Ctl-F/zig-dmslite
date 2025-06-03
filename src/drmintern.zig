@@ -171,3 +171,33 @@ pub fn free_card_resources(res: Resources) void {
     res.allocator.free(res.encoder_ids);
     res.allocator.free(res.crtc_ids);
 }
+
+
+pub const Connection = struct {
+    connection_id: u32,
+    encoder_id: u32,
+    crtc_id: u32,
+};
+
+fn select_open_connector(card: std.posix.fd_t, res: Resources) !u32 {
+    for(res.connector_ids) |conn_id| {
+        const conn = c.drmModeGetConnector(card, conn_id);
+        if(conn == null){
+            continue;
+        }
+        if(conn.*.connection != c.DRM_MODE_CONNECTED or conn.*.count_modes == 0){
+            continue;
+        }
+
+        return conn_id;
+    }
+    else {
+        return error.CONN_NOT_FOUND;
+    }
+}
+
+pub fn select_connection_and_encoder(card: std.posix.fd_t, res: Resources) !Connection {
+   _ = card;
+   _ = res;
+   return error.NotImplemented;
+}

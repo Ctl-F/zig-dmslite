@@ -32,7 +32,7 @@ pub fn main() !void {
             cap.dumb_buffer_prefer_shadow,
         }
     );
-    std.debug.print("  FB_COUNT: {}\n  CONN_COUNT: {}\n  ENC_COUNT: {}\n  CRTC_COUNT: {}\n  LIMITS.MIN {}x{}\n  LIMITS.MAX: {}x{}\n",
+    std.debug.print("  FB_COUNT: {}\n  CONN_COUNT: {}\n  ENC_COUNT: {}\n  CRTC_COUNT: {}\n  LIMITS.MIN: {}x{}\n  LIMITS.MAX: {}x{}\n",
         .{
             res.fb_ids.len,
             res.connector_ids.len,
