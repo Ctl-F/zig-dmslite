@@ -2,7 +2,6 @@ const std = @import("std");
 const c = @cImport({
     @cInclude("xf86drm.h");
     @cInclude("xf86drmMode.h");
-    //@cInclude("asm/ioctl.h");
 });
 
 
@@ -173,7 +172,7 @@ pub fn free_card_resources(res: Resources) void {
 }
 
 pub const FramebufferInfo = struct {
-    resolution: Resolution = .Small,
+    resolution: Resolution,
 };
 
 pub const Connection = struct {
@@ -183,16 +182,28 @@ pub const Connection = struct {
     crtc_id: u32,
 };
 
-pub const Resolution = enum {
-    Small,
-    Medium,
-    Large,
+pub const Resolution = union(enum) {
+    small: Small,
+    medium: Medium,
+    large: Large,
 
-    pub fn get_native_size(resolution: Resolution) @Vector(2, u32){
-        return switch(resolution) {
-            .Small => .{ 640, 480 },
-            .Medium => .{ 800, 600 },
-            .Large => .{ 1280, 720 },
+    pub const Small = struct{ size: @Vector(2, u32) = .{ 640, 480 }, half: bool = false, };
+    pub const Medium = struct{ size: @Vector(2, u32) = .{ 800, 600 }, half: bool = false, };
+    pub const Large = struct{ size: @Vector(2, u32) = .{ 1280, 720 }, half: bool = false, };
+    
+    pub fn get_native_size(self: @This()) @Vector(2, u32) {
+        return switch(self){
+            .small => |s| s.size / @as(@Vector(2, u32), @splat(@intFromBool(s.half) + 1)),
+            .medium => |m| m.size / @as(@Vector(2, u32), @splat(@intFromBool(m.half) + 1)),
+            .large => |l| l.size / @as(@Vector(2, u32), @splat(@intFromBool(l.half) + 1)),
+        };
+    }
+
+    pub fn get_size(self: @This()) @Vector(2, u32) {
+        return switch(self){
+            .small => |s| s.size,
+            .medium => |m| m.size,
+            .large => |l| l.size,
         };
     }
 };
@@ -207,16 +218,16 @@ fn select_open_connector(card: std.posix.fd_t, res: Resources) !u32 {
             continue;
         }
 
-        return conn;
+        return conn_id;
     }
     else {
         return error.CONN_NOT_FOUND;
     }
 }
 
-fn select_mode(connector: *c.drmModeConnector, info: FramebufferInfo) ?struct { ?*c.drmModeModeInfo, u32 } {
+fn select_mode(connector: *c.drmModeConnector, info: FramebufferInfo) ?struct { c.drmModeModeInfo, u32 } {
     const resolution = info.resolution.get_native_size();
-    for(0..connector.count_modes) |idx| {
+    for(0..@intCast(connector.count_modes)) |idx| {
         const mode = connector.modes[idx];
         if(mode.hdisplay == resolution[0] and mode.vdisplay == resolution[1]){
             return .{
@@ -232,17 +243,36 @@ pub fn select_connection_and_encoder(card: std.posix.fd_t, res: Resources, info:
     const connector_id = try select_open_connector(card, res);
 
     const connector = c.drmModeGetConnector(card, connector_id);
-    if(connector[0] == null){
+    if(connector == null){
         return error.NoActiveConnection;
     }
 
     if(select_mode(connector.?, info)) |mode| {
-        return Connection{
-            .connector_id = connector_id,
-            .connector_mode = mode[1],
-            .encoder_id = 0,
-            .crtc_id = 0,
-        };
+        for(0..@intCast(connector.*.count_encoders)) |idx| {
+            const encoder_id = connector.*.encoders[idx];
+            const encoder = c.drmModeGetEncoder(card, encoder_id);
+            
+            for(0..res.crtc_ids.len) |crtc_idx| {
+                if(encoder.*.possible_crtcs & (@as(u32, 1) << @as(u5, @truncate(crtc_idx))) != 0) {
+                    return Connection{
+                        .connector_id = connector_id,
+                        .connector_mode = mode[1],
+                        .encoder_id = encoder_id,
+                        .crtc_id = res.crtc_ids[crtc_idx],
+                    };
+                }
+            }
+
+        }
+        
+        return error.UnableToResolveConnectorDetailsForMode;
+
+        //return Connection{
+        //    .connector_id = connector_id,
+        //    .connector_mode = mode[1],
+        //    .encoder_id = 0,
+        //    .crtc_id = 0,
+        //};
     }
     
     return error.ModeNotAvailable;

@@ -43,6 +43,30 @@ pub fn main() !void {
         }
     );
 
+    const resolution: dmslite.Resolution = dmslite.Resolution{
+        .small = .{ .half = false }
+    };
+    const fbInfo = dmslite.FramebufferInfo{ .resolution = resolution };
+    const connection = try dmslite.select_connection(card, res, fbInfo);
+
+    std.debug.print("Connection successful:\n  CONN_ID: {}\n  ENC_ID: {}\n  CRTC_ID: {}\n",
+        .{
+            connection.connector_id,
+            connection.encoder_id,
+            connection.crtc_id,
+        });
+
+    const drm_mode = dmslite.get_connection_mode(card, connection);
+
+    std.debug.print("Mode: {}x{}@{}\nResolution: {}x{}\n",
+        .{ 
+            drm_mode.hdisplay,
+            drm_mode.vdisplay, 
+            drm_mode.vrefresh,
+            resolution.get_size()[0], 
+            resolution.get_size()[1] 
+        });
+
 }
 
 

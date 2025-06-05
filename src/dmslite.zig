@@ -20,6 +20,18 @@ pub const Resources = intern.Resources;
 pub const query_card_resources = intern.query_card_resources;
 pub const free_card_resources = intern.free_card_resources;
 
+pub const Connection = intern.Connection;
+pub const Resolution = intern.Resolution;
+pub const FramebufferInfo = intern.FramebufferInfo;
+pub const select_connection = intern.select_connection_and_encoder;
+
+pub const ConnectionMode = c.drmModeModeInfo;
+
+pub fn get_connection_mode(card: PhysicalCard, conn: Connection) ConnectionMode {
+    const connector = c.drmModeGetConnector(card, conn.connector_id);
+    return connector.*.modes[conn.connector_mode];
+}
+
 pub fn enumerate_cards(allocator: std.mem.Allocator) Error!std.ArrayList([]u8) {
     const List = std.ArrayList([]u8);
     var list = List.init(allocator);
@@ -75,8 +87,6 @@ pub const Capabilities = struct {
 };
 
 
-
-
 pub fn query_card_capabilities(card: PhysicalCard) Error!Capabilities {
     var capabilities: Capabilities = undefined;
 
@@ -94,5 +104,5 @@ pub fn query_card_capabilities(card: PhysicalCard) Error!Capabilities {
     return capabilities;
 }
 
-
+// TODO: Attach dumb buffer and allocate shadow buffer for actual rendering
 
